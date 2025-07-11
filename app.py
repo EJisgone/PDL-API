@@ -1,42 +1,58 @@
 import streamlit as st
 import requests
 
-st.set_page_config(page_title="PDL Candidate Search", page_icon="🔍", layout="centered")
+st.set_page_config(page_title="People Data Search", page_icon="🔍", layout="centered")
 
-# ---- Custom Styling ----
+# ---- Custom PDL-Themed CSS Styling ----
 st.markdown("""
     <style>
+    body {
+        font-family: 'Segoe UI', sans-serif;
+    }
     .reportview-container {
         padding: 2rem;
-        font-family: "Segoe UI", sans-serif;
     }
     .candidate-card {
-        background-color: #f9f9fb;
+        background-color: #ffffff;
         border: 1px solid #e1e3e8;
-        border-radius: 12px;
+        border-radius: 14px;
         padding: 1.5rem;
         margin-bottom: 1.5rem;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.04);
+        color: #1a1a1a;
     }
     .candidate-header {
-        font-size: 1.25rem;
+        font-size: 1.3rem;
         font-weight: 600;
-        margin-bottom: 0.25rem;
+        color: #16294C;
+        margin-bottom: 0.5rem;
     }
     .field-label {
-        font-weight: 500;
+        font-weight: 600;
         color: #555;
+    }
+    .stButton>button {
+        background-color: #2C5AFF;
+        color: #ffffff;
+        border: none;
+        padding: 0.6rem 1.2rem;
+        border-radius: 8px;
+        font-size: 1rem;
+        margin-top: 0.5rem;
+    }
+    .stButton>button:hover {
+        background-color: #244bcc;
     }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("🔍 People Data Search")
-st.caption("Find global professionals based on structured job role data.")
+st.caption("Find professionals across the globe based on structured job role data. Powered by People Data Labs.")
 
 # --- Secure API Key
 API_KEY = st.secrets["PDL"]["API_KEY"]
 
-# --- Canonical Roles List
+# --- Canonical job_title_role values
 VALID_ROLES = [
     "advisory", "analyst", "creative", "education", "engineering", "finance", "fulfillment",
     "health", "hospitality", "human_resources", "legal", "manufacturing", "marketing",
@@ -44,14 +60,14 @@ VALID_ROLES = [
     "research", "sales", "sales_engineering", "support", "trade", "unemployed"
 ]
 
-# --- Sidebar Inputs
+# --- Sidebar Filters
 with st.sidebar:
-    st.header("🔧 Search Filters")
-    selected_role = st.selectbox("Select Role", VALID_ROLES, index=VALID_ROLES.index("engineering"))
-    num_results = st.slider("Number of Candidates", 1, 50, 5)
-    search_btn = st.button("Search Candidates")
+    st.header("🔧 Filters")
+    selected_role = st.selectbox("Role", VALID_ROLES, index=VALID_ROLES.index("engineering"))
+    num_results = st.slider("Results", 1, 50, 5)
+    search_btn = st.button("🔍 Search Candidates")
 
-# --- Action
+# --- Perform API Call
 if search_btn:
     st.info(f"🔎 Searching for `{selected_role}` candidates...")
 
@@ -86,7 +102,7 @@ if search_btn:
             if not people:
                 st.warning("⚠️ No candidates found for this role.")
             else:
-                st.success(f"✅ Found {len(people)} candidate(s) for role '{selected_role}'")
+                st.success(f"✅ Found {len(people)} candidate(s)")
 
                 for person in people:
                     name = person.get("full_name", "N/A")
