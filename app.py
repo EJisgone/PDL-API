@@ -4,24 +4,32 @@ import requests
 st.set_page_config(page_title="Candidate Search", page_icon="🔍")
 
 st.title("🔍 Candidate Search App")
-st.write("Search professionals based on job title using People Data Labs API")
+st.write("Search professionals based on normalized job roles using the People Data Labs API")
 
-# Load your API key securely from Streamlit secrets
+# Load your API key from secrets
 API_KEY = st.secrets["PDL"]["API_KEY"]
 
-# Input fields
-job_title = st.text_input("Enter Job Title", value="developer")
+# Valid job_title_role values as per PDL docs
+VALID_ROLES = [
+    "advisory", "analyst", "creative", "education", "engineering", "finance", "fulfillment",
+    "health", "hospitality", "human_resources", "legal", "manufacturing", "marketing",
+    "operations", "partnerships", "product", "professional_service", "public_service",
+    "research", "sales", "sales_engineering", "support", "trade", "unemployed"
+]
+
+# UI: Role selector and number of results
+selected_role = st.selectbox("Select a role", VALID_ROLES, index=VALID_ROLES.index("engineering"))
 num_results = st.slider("Number of candidates to return", 1, 50, 5)
 
 if st.button("Search"):
-    st.info("Sending request to People Data Labs API...")
-    
-    # Proper Elasticsearch query format
+    st.info(f"Searching for candidates in the role: **{selected_role}**...")
+
+    # Elasticsearch-compatible payload
     payload = {
         "query": {
             "bool": {
                 "must": [
-                    {"term": {"job_title_role": job_title.lower()}}  # Role must be lowercase term
+                    {"term": {"job_title_role": selected_role}}
                 ]
             }
         },
@@ -46,7 +54,7 @@ if st.button("Search"):
         else:
             people = result.get("data", [])
             if not people:
-                st.warning("No candidates found.")
+                st.warning("No candidates found for this role.")
             else:
                 for person in people:
                     st.subheader(person.get("full_name", "No Name Provided"))
@@ -59,6 +67,5 @@ if st.button("Search"):
                     if experience:
                         st.write(f"**Company:** {experience[0].get('company', 'N/A')}")
                     st.divider()
-
     except Exception as e:
         st.error(f"Request failed: {str(e)}")
