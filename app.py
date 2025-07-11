@@ -6,9 +6,8 @@ st.set_page_config(page_title="Candidate Search", page_icon="🔍")
 st.title("🔍 Candidate Search App (via People Data Labs)")
 st.write("Search professionals based on job title using People Data Labs API")
 
-# Load API key from secrets (or hardcode for testing)
+# Load API key securely
 API_KEY = st.secrets["PDL"]["API_KEY"]
-# API_KEY = "your_api_key_here"  # Uncomment for local testing
 
 # Input fields
 job_title = st.text_input("Enter Job Title", value="software engineer")
@@ -21,12 +20,9 @@ if st.button("Search"):
             "X-Api-Key": API_KEY
         }
 
-        params = {
+        payload = {
             "query": {
-                "job_title": {
-                    "value": job_title,
-                    "fuzzy": True
-                }
+                "job_title": job_title
             },
             "size": num_results
         }
@@ -35,7 +31,7 @@ if st.button("Search"):
             response = requests.post(
                 "https://api.peopledatalabs.com/v5/person/search",
                 headers=headers,
-                json=params
+                json=payload
             )
             data = response.json()
 
@@ -44,16 +40,17 @@ if st.button("Search"):
             else:
                 people = data.get("data", [])
                 if not people:
-                    st.warning("No results found.")
+                    st.warning("No candidates found.")
                 else:
                     for person in people:
-                        st.subheader(person.get("full_name", "Name not available"))
+                        st.subheader(person.get("full_name", "No name provided"))
                         st.write(f"**Job Title:** {person.get('job_title', 'N/A')}")
                         st.write(f"**Email:** {person.get('email', 'N/A')}")
                         location = person.get("location", {}).get("name", "N/A")
                         st.write(f"**Location:** {location}")
-                        company = person.get("experience", [{}])[0].get("company", "N/A")
-                        st.write(f"**Company:** {company}")
+                        experience = person.get("experience", [])
+                        if experience:
+                            st.write(f"**Company:** {experience[0].get('company', 'N/A')}")
                         st.divider()
         except Exception as e:
             st.error(f"Request failed: {str(e)}")
