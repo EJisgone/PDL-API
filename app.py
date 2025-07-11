@@ -6,8 +6,9 @@ st.set_page_config(page_title="Candidate Search", page_icon="🔍")
 st.title("🔍 Candidate Search App (via People Data Labs)")
 st.write("Search professionals based on job title using People Data Labs API")
 
-# Load API key from secrets
+# Load API key from secrets (or hardcode for testing)
 API_KEY = st.secrets["PDL"]["API_KEY"]
+# API_KEY = "your_api_key_here"  # Uncomment for local testing
 
 # Input fields
 job_title = st.text_input("Enter Job Title", value="software engineer")
@@ -21,7 +22,12 @@ if st.button("Search"):
         }
 
         params = {
-            "job_title": [job_title],
+            "query": {
+                "job_title": {
+                    "value": job_title,
+                    "fuzzy": True
+                }
+            },
             "size": num_results
         }
 
@@ -34,7 +40,7 @@ if st.button("Search"):
             data = response.json()
 
             if response.status_code != 200:
-                st.error(f"API Error: {data.get('error', 'Unknown error')}")
+                st.error(f"API Error: {data.get('error', data)}")
             else:
                 people = data.get("data", [])
                 if not people:
