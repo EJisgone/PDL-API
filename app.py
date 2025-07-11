@@ -1,15 +1,42 @@
 import streamlit as st
 import requests
 
-st.set_page_config(page_title="Candidate Search", page_icon="🔍")
+st.set_page_config(page_title="PDL Candidate Search", page_icon="🔍", layout="centered")
 
-st.title("🔍 Candidate Search App")
-st.write("Search professionals based on normalized job roles using the People Data Labs API")
+# ---- Custom Styling ----
+st.markdown("""
+    <style>
+    .reportview-container {
+        padding: 2rem;
+        font-family: "Segoe UI", sans-serif;
+    }
+    .candidate-card {
+        background-color: #f9f9fb;
+        border: 1px solid #e1e3e8;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .candidate-header {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    .field-label {
+        font-weight: 500;
+        color: #555;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-# Load your API key from secrets
+st.title("🔍 People Data Search")
+st.caption("Find global professionals based on structured job role data.")
+
+# --- Secure API Key
 API_KEY = st.secrets["PDL"]["API_KEY"]
 
-# Valid job_title_role values as per PDL docs
+# --- Canonical Roles List
 VALID_ROLES = [
     "advisory", "analyst", "creative", "education", "engineering", "finance", "fulfillment",
     "health", "hospitality", "human_resources", "legal", "manufacturing", "marketing",
@@ -17,14 +44,17 @@ VALID_ROLES = [
     "research", "sales", "sales_engineering", "support", "trade", "unemployed"
 ]
 
-# UI: Role selector and number of results
-selected_role = st.selectbox("Select a role", VALID_ROLES, index=VALID_ROLES.index("engineering"))
-num_results = st.slider("Number of candidates to return", 1, 50, 5)
+# --- Sidebar Inputs
+with st.sidebar:
+    st.header("🔧 Search Filters")
+    selected_role = st.selectbox("Select Role", VALID_ROLES, index=VALID_ROLES.index("engineering"))
+    num_results = st.slider("Number of Candidates", 1, 50, 5)
+    search_btn = st.button("Search Candidates")
 
-if st.button("Search"):
-    st.info(f"Searching for candidates in the role: **{selected_role}**...")
+# --- Action
+if search_btn:
+    st.info(f"🔎 Searching for `{selected_role}` candidates...")
 
-    # Elasticsearch-compatible payload
     payload = {
         "query": {
             "bool": {
@@ -50,22 +80,30 @@ if st.button("Search"):
         result = response.json()
 
         if response.status_code != 200:
-            st.error(f"API Error: {result.get('message', result)}")
+            st.error(f"❌ API Error: {result.get('message', result)}")
         else:
             people = result.get("data", [])
             if not people:
-                st.warning("No candidates found for this role.")
+                st.warning("⚠️ No candidates found for this role.")
             else:
+                st.success(f"✅ Found {len(people)} candidate(s) for role '{selected_role}'")
+
                 for person in people:
-                    st.subheader(person.get("full_name", "No Name Provided"))
-                    st.write(f"**Job Title:** {person.get('job_title', 'N/A')}")
-                    location = person.get("location", {}).get("name", "N/A")
-                    st.write(f"**Location:** {location}")
+                    name = person.get("full_name", "N/A")
+                    job = person.get("job_title", "N/A")
                     email = person.get("email", "N/A")
-                    st.write(f"**Email:** {email}")
-                    experience = person.get("experience", [])
-                    if experience:
-                        st.write(f"**Company:** {experience[0].get('company', 'N/A')}")
-                    st.divider()
+                    loc = person.get("location", {}).get("name", "N/A")
+                    exp = person.get("experience", [])
+                    company = exp[0].get("company", "N/A") if exp else "N/A"
+
+                    st.markdown(f"""
+                    <div class="candidate-card">
+                        <div class="candidate-header">{name}</div>
+                        <div><span class="field-label">Role:</span> {job}</div>
+                        <div><span class="field-label">Company:</span> {company}</div>
+                        <div><span class="field-label">Location:</span> {loc}</div>
+                        <div><span class="field-label">Email:</span> {email}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
     except Exception as e:
-        st.error(f"Request failed: {str(e)}")
+        st.error(f"🚨 Request failed: {str(e)}")
